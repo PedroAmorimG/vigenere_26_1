@@ -4,6 +4,7 @@
 #include <iostream>
 #include <fstream>
 #include <iterator>
+#include <stdint.h>
 
 std::string build_output_file_path(const std::string &input_file_path, const std::string &suffix)
 {
@@ -16,7 +17,7 @@ std::string build_output_file_path(const std::string &input_file_path, const std
     return input_file_path.substr(0, extension_position) + suffix + ".txt";
 }
 
-void convert_key_to_shift_array(std::string key, std::vector<u_int8_t> &shift_vector)
+void convert_key_to_shift_array(std::string key, std::vector<uint8_t> &shift_vector)
 {
     for (auto c : key)
     {
@@ -35,7 +36,7 @@ void convert_key_to_shift_array(std::string key, std::vector<u_int8_t> &shift_ve
     }
 }
 
-void convert_plain_text_to_int_array(std::string plain_text, std::vector<u_int8_t> &plain_text_vector)
+void convert_plain_text_to_int_array(std::string plain_text, std::vector<uint8_t> &plain_text_vector)
 {
     for (auto c : plain_text)
     {
@@ -60,9 +61,9 @@ void convert_plain_text_to_int_array(std::string plain_text, std::vector<u_int8_
 
 void vigenere(std::string plain_text, std::string key, std::string &cipher_text)
 {
-    u_int32_t key_position = 0;
-    std::vector<u_int8_t> shift_vector;
-    std::vector<u_int8_t> plain_text_vector;
+    uint32_t key_position = 0;
+    std::vector<uint8_t> shift_vector;
+    std::vector<uint8_t> plain_text_vector;
     convert_key_to_shift_array(key, shift_vector);
     convert_plain_text_to_int_array(plain_text, plain_text_vector);
 
@@ -87,9 +88,9 @@ void vigenere(std::string plain_text, std::string key, std::string &cipher_text)
 
 void reverse_vigenere(std::string cipher_text, std::string key, std::string &plain_text)
 {
-    u_int32_t key_position = 0;
-    std::vector<u_int8_t> shift_vector;
-    std::vector<u_int8_t> cipher_text_vector;
+    uint32_t key_position = 0;
+    std::vector<uint8_t> shift_vector;
+    std::vector<uint8_t> cipher_text_vector;
     convert_key_to_shift_array(key, shift_vector);
     convert_plain_text_to_int_array(cipher_text, cipher_text_vector);
 
@@ -101,7 +102,7 @@ void reverse_vigenere(std::string cipher_text, std::string key, std::string &pla
             continue;
         }
 
-        u_int8_t shift = shift_vector.at(key_position);
+        uint8_t shift = shift_vector.at(key_position);
         plain_text.push_back(((c + 26 - shift) % 26) + 'A');
         key_position++;
         if (key_position >= shift_vector.size())
