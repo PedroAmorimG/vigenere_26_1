@@ -7,6 +7,22 @@
 #include <stdint.h>
 #include <cctype>
 
+double portuguese_freq[26] = {
+    14.63, 1.04, 3.88, 4.99, 12.57, 1.02, 1.30,
+    0.78, 6.18, 0.40, 0.02, 2.78, 4.74,
+    5.05, 10.73, 2.52, 1.20, 6.53,
+    7.81, 4.34, 4.63, 1.67, 0.01, 0.21,
+    0.01, 0.47
+};
+    
+double english_freq[26] = {
+    8.17, 1.49, 2.78, 4.25, 12.70, 2.23, 2.02,
+    6.09, 6.97, 0.15, 0.77, 4.03, 2.41,
+    6.75, 7.51, 1.93, 0.10, 5.99,
+    6.33, 9.06, 2.76, 0.98, 2.36, 0.15,
+    1.97, 0.07
+};
+
 std::string build_output_file_path(const std::string &input_file_path, const std::string &suffix)
 {
     std::size_t extension_position = input_file_path.find_last_of('.');
@@ -32,7 +48,7 @@ void convert_key_to_shift_array(std::string key, std::vector<uint8_t> &shift_vec
         }
         else
         {
-            throw std::runtime_error("Expected only letters on key.");
+            throw std::runtime_error("Esperava-se apenas letras na chave.");
         }
     }
 }
@@ -150,16 +166,8 @@ std::vector<int> frequency(const std::string &group)
 }
 
 // Descobre letra da chave
-char find_key_letter(const std::string &group)
+char find_key_letter(const std::string &group, double freq_table[26])
 {
-    double portuguese_freq[26] = {
-        14.63, 1.04, 3.88, 4.99, 12.57, 1.02, 1.30,
-        0.78, 6.18, 0.40, 0.02, 2.78, 4.74,
-        5.05, 10.73, 2.52, 1.20, 6.53,
-        7.81, 4.34, 4.63, 1.67, 0.01, 0.21,
-        0.01, 0.47
-    };
-
     int n = group.size();
     double best_score = 1e9;
     int best_shift = 0;
@@ -180,7 +188,7 @@ char find_key_letter(const std::string &group)
         double score = 0.0;
         for (int i = 0; i < 26; i++)
         {
-            double expected = portuguese_freq[i] * n / 100.0;
+            double expected = freq_table[i] * n / 100.0;
             if (expected > 0)
             {
                 double diff = freq[i] - expected;
@@ -200,13 +208,15 @@ char find_key_letter(const std::string &group)
 }
 
 // Descobre chave inteira
-std::string find_key(const std::string &text, int key_size)
+std::string find_key(const std::string &text, int key_size, double freq_table[26])
 {
     auto groups = split_groups(text, key_size);
     std::string key;
 
     for (auto &g : groups)
-        key += find_key_letter(g);
+    {
+        key += find_key_letter(g, freq_table);
+    }
 
     return key;
 }
@@ -241,7 +251,7 @@ int main(int argc, char *argv[])
         input_file.open(file_path);
         if (!input_file.is_open())
         {
-            throw std::runtime_error("Could not open input file.");
+            throw std::runtime_error("Não foi possível abrir o arquivo.");
         }
 
         input_text.assign(std::istreambuf_iterator<char>(input_file),
@@ -265,26 +275,32 @@ int main(int argc, char *argv[])
 
             for (int size = 2; size <= 10; size++)
             {
-                std::string key = find_key(cleaned, size);
+                std::string key_pt = find_key(cleaned, size, portuguese_freq);
+                std::string key_en = find_key(cleaned, size, english_freq);
 
-                std::string decrypted;
-                reverse_vigenere(input_text, key, decrypted);
+                std::string dec_pt, dec_en;
 
-                std::cout << "\nKey size " << size << ": " << key << std::endl;
-                std::cout << "Decrypted: " << decrypted.substr(0, 100) << "..." << std::endl;
+                reverse_vigenere(input_text, key_pt, dec_pt);
+                reverse_vigenere(input_text, key_en, dec_en);
+
+                std::cout << "\nKey size " << size << " (PT): " << key_pt << std::endl;
+                std::cout << "Decrypted PT: " << dec_pt.substr(0, 150) << "...\n";
+
+                std::cout << "Key size " << size << " (EN): " << key_en << std::endl;
+                std::cout << "Decrypted EN: " << dec_en.substr(0, 150) << "...\n";
             }
 
             return 0;
         }         
         else
         {
-            throw std::runtime_error("Expected operation to be encrypt or decrypt.");
+            throw std::runtime_error("A operação esperada é criptografar ou descriptografar.");
         }
         output_file_path = build_output_file_path(file_path, output_suffix);
         output_file.open(output_file_path);
         if (!output_file.is_open())
         {
-            throw std::runtime_error("Could not create output file.");
+            throw std::runtime_error("Não foi possível criar o arquivo de saida.");
         }
 
         output_file << result_text;
