@@ -5,6 +5,7 @@
 #include <fstream>
 #include <iterator>
 #include <stdint.h>
+#include <cctype>
 
 std::string build_output_file_path(const std::string &input_file_path, const std::string &suffix)
 {
@@ -112,22 +113,126 @@ void reverse_vigenere(std::string cipher_text, std::string key, std::string &pla
     }
 }
 
+// Remove tudo que não é letra
+std::string clean_text(const std::string &text)
+{
+    std::string result;
+    for (char c : text)
+    {
+        if (isalpha(c))
+            result.push_back(toupper(c));
+    }
+    return result;
+}
+
+// Divide em grupos
+std::vector<std::string> split_groups(const std::string &text, int key_size)
+{
+    std::vector<std::string> groups(key_size);
+
+    for (int i = 0; i < text.size(); i++)
+    {
+        groups[i % key_size] += text[i];
+    }
+
+    return groups;
+}
+
+// Frequência
+std::vector<int> frequency(const std::string &group)
+{
+    std::vector<int> freq(26, 0);
+
+    for (char c : group)
+        freq[c - 'A']++;
+
+    return freq;
+}
+
+// Descobre letra da chave
+char find_key_letter(const std::string &group)
+{
+    double portuguese_freq[26] = {
+        14.63, 1.04, 3.88, 4.99, 12.57, 1.02, 1.30,
+        0.78, 6.18, 0.40, 0.02, 2.78, 4.74,
+        5.05, 10.73, 2.52, 1.20, 6.53,
+        7.81, 4.34, 4.63, 1.67, 0.01, 0.21,
+        0.01, 0.47
+    };
+
+    int n = group.size();
+    double best_score = 1e9;
+    int best_shift = 0;
+
+    // testa todos os shifts possíveis
+    for (int shift = 0; shift < 26; shift++)
+    {
+        std::vector<int> freq(26, 0);
+
+        // aplica "descriptografia" com o shift
+        for (char c : group)
+        {
+            int decrypted = (c - 'A' - shift + 26) % 26;
+            freq[decrypted]++;
+        }
+
+        // calcula erro (chi-square simplificado)
+        double score = 0.0;
+        for (int i = 0; i < 26; i++)
+        {
+            double expected = portuguese_freq[i] * n / 100.0;
+            if (expected > 0)
+            {
+                double diff = freq[i] - expected;
+                score += (diff * diff) / expected;
+            }
+        }
+
+        // guarda o melhor
+        if (score < best_score)
+        {
+            best_score = score;
+            best_shift = shift;
+        }
+    }
+
+    return 'A' + best_shift;
+}
+
+// Descobre chave inteira
+std::string find_key(const std::string &text, int key_size)
+{
+    auto groups = split_groups(text, key_size);
+    std::string key;
+
+    for (auto &g : groups)
+        key += find_key_letter(g);
+
+    return key;
+}
+
 int main(int argc, char *argv[])
 {
 
     try
     {
-        if (argc != 4)
+        if (argc != 3 && argc != 4)
         {
-            std::cout << "Usage: " << argv[0] << " <input_file_path> <encrypt|decrypt> <key>" << std::endl;
+            std::cout << "Usage:\n";
+            std::cout << argv[0] << " <input_file_path> <encrypt|decrypt> <key>\n";
+            std::cout << argv[0] << " <input_file_path> attack\n";
             return 1;
         }
 
         std::string input_text;
-        std::string key = argv[3];
         std::string result_text;
         std::string file_path = argv[1];
         std::string operation = argv[2];
+        std::string key;
+        if (operation != "attack")
+        {
+            key = argv[3];
+        }
         std::string output_suffix;
         std::string output_file_path;
         std::ifstream input_file;
@@ -151,12 +256,30 @@ int main(int argc, char *argv[])
         {
             reverse_vigenere(input_text, key, result_text);
             output_suffix = "_decrypted";
-        }
+        }  
+        else if (operation == "attack")
+        {
+            std::string cleaned = clean_text(input_text);
+
+            std::cout << "=== ATTACK MODE ===" << std::endl;
+
+            for (int size = 2; size <= 10; size++)
+            {
+                std::string key = find_key(cleaned, size);
+
+                std::string decrypted;
+                reverse_vigenere(input_text, key, decrypted);
+
+                std::cout << "\nKey size " << size << ": " << key << std::endl;
+                std::cout << "Decrypted: " << decrypted.substr(0, 100) << "..." << std::endl;
+            }
+
+            return 0;
+        }         
         else
         {
             throw std::runtime_error("Expected operation to be encrypt or decrypt.");
         }
-
         output_file_path = build_output_file_path(file_path, output_suffix);
         output_file.open(output_file_path);
         if (!output_file.is_open())
