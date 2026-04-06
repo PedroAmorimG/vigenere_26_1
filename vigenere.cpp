@@ -232,8 +232,6 @@ int find_key_size(const std::string &text, double constante)
         double score = 0.0;
         int valid_groups = 0; 
 
-        std::cout << "SIZE = " << size << std::endl;
-
         for (auto &g : groups) {
             if (g.size() < 2) continue; // evitar divisão por zero
             std::vector<int> freq(26, 0);
