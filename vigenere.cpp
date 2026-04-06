@@ -221,6 +221,55 @@ std::string find_key(const std::string &text, int key_size, double freq_table[26
     return key;
 }
 
+// Descobre tamanho da chave
+int find_key_size(const std::string &text, double constante)
+{
+    double best_score = 1e9;
+    int best_size = 2;
+
+    for (int size = 2; size <= 10; size++) {
+        auto groups = split_groups(text, size);
+        double score = 0.0;
+        int valid_groups = 0; 
+
+        std::cout << "SIZE = " << size << std::endl;
+
+        for (auto &g : groups) {
+            if (g.size() < 2) continue; // evitar divisão por zero
+            std::vector<int> freq(26, 0);
+
+            // computa frequências de cada letra
+            for (char c : g) {
+                int index = (c - 'A' + 26) % 26;
+                freq[index]++;
+            }
+
+            double ic = 0.0; // Índice de coincidência
+            int N = g.size();
+
+            for (int i = 0; i < 26; i++) {
+                ic += freq[i] * (freq[i] - 1);
+            }
+
+            ic /= (double)(N * (N - 1));
+            score += ic;
+            valid_groups++;
+        }
+        if (valid_groups > 0) {score = score / groups.size();}
+        
+        double diff = std::abs(score - constante);
+
+        // guarda o melhor
+        if (diff < best_score) {
+            best_score = diff;
+            best_size = size;
+        }
+
+    }
+
+    return best_size;
+}
+
 int main(int argc, char *argv[])
 {
 
@@ -273,22 +322,22 @@ int main(int argc, char *argv[])
 
             std::cout << "=== ATTACK MODE ===" << std::endl;
 
-            for (int size = 2; size <= 10; size++)
-            {
-                std::string key_pt = find_key(cleaned, size, portuguese_freq);
-                std::string key_en = find_key(cleaned, size, english_freq);
+            int size_pt = find_key_size(cleaned, 0.07813849);
+            int size_en = find_key_size(cleaned, 0.06549669);
 
-                std::string dec_pt, dec_en;
+            std::string key_pt = find_key(cleaned, size_pt, portuguese_freq);
+            std::string key_en = find_key(cleaned, size_en, english_freq);
 
-                reverse_vigenere(input_text, key_pt, dec_pt);
-                reverse_vigenere(input_text, key_en, dec_en);
+            std::string dec_pt, dec_en;
 
-                std::cout << "\nKey size " << size << " (PT): " << key_pt << std::endl;
-                std::cout << "Decrypted PT: " << dec_pt.substr(0, 150) << "...\n";
+            reverse_vigenere(input_text, key_pt, dec_pt);
+            reverse_vigenere(input_text, key_en, dec_en);
 
-                std::cout << "Key size " << size << " (EN): " << key_en << std::endl;
-                std::cout << "Decrypted EN: " << dec_en.substr(0, 150) << "...\n";
-            }
+            std::cout << "\nKey size " << size_pt << " (PT): " << key_pt << std::endl;
+            std::cout << "Decrypted PT: " << dec_pt.substr(0, 150) << "...\n";
+
+            std::cout << "Key size " << size_en << " (EN): " << key_en << std::endl;
+            std::cout << "Decrypted EN: " << dec_en.substr(0, 150) << "...\n";
 
             return 0;
         }         
