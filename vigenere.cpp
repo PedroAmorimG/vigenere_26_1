@@ -221,19 +221,20 @@ std::string find_key(const std::string &text, int key_size, double freq_table[26
     return key;
 }
 
-// Descobre tamanho da chave
-int find_key_size(const std::string &text, double constante)
+std::vector<int> find_key_size(const std::string &text, double constante)
 {
     double best_score = 1e9;
-    int best_size = 2;
+    double best_score2 = 1e9;
+    double best_score3 = 1e9;
+    std::vector<int> keys = {2, 2, 2};
 
     for (int size = 2; size <= 10; size++) {
         auto groups = split_groups(text, size);
         double score = 0.0;
-        int valid_groups = 0; 
+        int valid_groups = 0;
 
         for (auto &g : groups) {
-            if (g.size() < 2) continue; // evitar divisão por zero
+            if (g.size() < 2) continue;
             std::vector<int> freq(26, 0);
 
             // computa frequências de cada letra
@@ -242,7 +243,7 @@ int find_key_size(const std::string &text, double constante)
                 freq[index]++;
             }
 
-            double ic = 0.0; // Índice de coincidência
+            double ic = 0.0;
             int N = g.size();
 
             for (int i = 0; i < 26; i++) {
@@ -253,24 +254,39 @@ int find_key_size(const std::string &text, double constante)
             score += ic;
             valid_groups++;
         }
-        if (valid_groups > 0) {score = score / groups.size();}
+        if (valid_groups > 0) {score = score / valid_groups;}
         
         double diff = std::abs(score - constante);
 
-        // guarda o melhor
+        // guarda os 3 melhores
         if (diff < best_score) {
+            best_score3 = best_score2;
+            best_score2 = best_score;
             best_score = diff;
-            best_size = size;
+
+            keys[2] = keys[1];
+            keys[1] = keys[0];
+            keys[0] = size;
+
+        } else if (diff < best_score2) {
+            best_score3 = best_score2;
+            best_score2 = diff;
+
+            keys[2] = keys[1];
+            keys[1] = size;
+
+        } else if (diff < best_score3) {
+            best_score3 = diff;
+            keys[2] = size;
         }
 
     }
 
-    return best_size;
+    return keys;
 }
 
 int main(int argc, char *argv[])
 {
-
     try
     {
         if (argc != 3 && argc != 4)
@@ -320,22 +336,28 @@ int main(int argc, char *argv[])
 
             std::cout << "=== ATTACK MODE ===" << std::endl;
 
-            int size_pt = find_key_size(cleaned, 0.07813849);
-            int size_en = find_key_size(cleaned, 0.06549669);
+            std::vector<int> size_pt = find_key_size(cleaned, 0.07813849);
+            std::vector<int> size_en = find_key_size(cleaned, 0.06549669);
 
-            std::string key_pt = find_key(cleaned, size_pt, portuguese_freq);
-            std::string key_en = find_key(cleaned, size_en, english_freq);
+            for (int size : size_pt) {
+                std::string key_pt = find_key(cleaned, size, portuguese_freq);
+                std::string dec_pt;
+                reverse_vigenere(input_text, key_pt, dec_pt);
 
-            std::string dec_pt, dec_en;
+                std::cout << "Key size " << size << " (PT): " << key_pt << std::endl;
+                std::cout << "Decrypted PT: " << dec_pt.substr(0, 150) << "...\n";
+            }
 
-            reverse_vigenere(input_text, key_pt, dec_pt);
-            reverse_vigenere(input_text, key_en, dec_en);
+            std::cout << std::endl;
 
-            std::cout << "\nKey size " << size_pt << " (PT): " << key_pt << std::endl;
-            std::cout << "Decrypted PT: " << dec_pt.substr(0, 150) << "...\n";
+            for (int size : size_en) {
+                std::string key_en = find_key(cleaned, size, english_freq);
+                std::string dec_en;
+                reverse_vigenere(input_text, key_en, dec_en);
 
-            std::cout << "Key size " << size_en << " (EN): " << key_en << std::endl;
-            std::cout << "Decrypted EN: " << dec_en.substr(0, 150) << "...\n";
+                std::cout << "Key size " << size << " (EN): " << key_en << std::endl;
+                std::cout << "Decrypted EN: " << dec_en.substr(0, 150) << "...\n";
+            }
 
             return 0;
         }         
