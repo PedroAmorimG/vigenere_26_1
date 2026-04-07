@@ -1,6 +1,6 @@
-# Vigenere Cipher
+# Vigenere Cipher para 95 caracteres ASCII - ' ' até '~'
 
-Programa em C++ para cifrar e decifrar textos usando a cifra de Vigenère.
+Programa em C++ para cifrar, decifrar e atacar textos usando a cifra de Vigenère.
 
 ## Compilação
 
@@ -11,7 +11,7 @@ g++ vigenere.cpp -o vigenere
 ## Uso
 
 ```bash
-./vigenere <input_file_path> <encrypt|decrypt> <key>
+./vigenere <input_file_path> <encrypt|decrypt|attack> <key>
 ```
 
 Exemplo para cifrar:
@@ -26,10 +26,16 @@ Exemplo para decifrar:
 ./vigenere teste_encrypted.txt decrypt LEMON
 ```
 
+Exemplo para atacar:
+
+```bash
+./vigenere teste_encrypted.txt attack
+```
+
 ## Parâmetros
 
 - `input_file_path`: caminho do arquivo `.txt` de entrada.
-- `encrypt|decrypt`: define se o programa vai cifrar ou decifrar.
+- `encrypt|decrypt|attack`: define se o programa vai cifrar, decifrar ou atacar.
 - `key`: chave alfabética usada na cifra de Vigenère.
 
 ## Saída
